@@ -1,24 +1,23 @@
-//
-//  ContentView.swift
-//  TradeLog
-//
-//  Created by Vignesh Chowdary on 16/12/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject var dashboardViewModel = DashboardViewModel()
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            TabView {
+                AnalyticsView()
+                    .environmentObject(dashboardViewModel)
+                    .tabItem {
+                        Label("Dashboard", systemImage: "house.fill")
+                    }
+                
+                TradeListView()
+                    .environmentObject(dashboardViewModel)
+                    .tabItem {
+                        Label("Trades", systemImage: "list.bullet")
+                    }
+            }
         }
-        .padding()
     }
-}
-
-#Preview {
-    ContentView()
 }
