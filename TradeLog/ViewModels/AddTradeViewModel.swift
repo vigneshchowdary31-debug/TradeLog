@@ -21,6 +21,7 @@ class AddTradeViewModel: ObservableObject {
 
     
     private var editingTrade: Trade?
+    private var cancellables = Set<AnyCancellable>()
     
     // Computed props for live update
     var calculatedGrossPnL: Double {
@@ -61,6 +62,15 @@ class AddTradeViewModel: ObservableObject {
             self.status = trade.status
             self.date = trade.date
         }
+        
+        // Auto-set status for specific categories
+        $category
+            .sink { [weak self] newCategory in
+                if [.delivery, .buyback, .ipo, .dividend].contains(newCategory) {
+                    self?.status = .closed
+                }
+            }
+            .store(in: &cancellables)
     }
     
     var isEditing: Bool { editingTrade != nil }
@@ -92,7 +102,7 @@ class AddTradeViewModel: ObservableObject {
         let exit = Double(exitPrice)
         let chargeVal = Double(charges)
         
-        var trade = Trade(
+        let trade = Trade(
             id: editingTrade?.id,
             userId: editingTrade?.userId ?? "",
             symbol: symbol.uppercased(),

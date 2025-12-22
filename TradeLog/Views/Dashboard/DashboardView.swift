@@ -6,26 +6,27 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // Header Section
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Overview")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
                         Text("Your trading performance at a glance")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
+                    .padding(.top, 20)
                     
                     // Key Metrics Grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         MetricCard(
                             title: "Total P&L",
                             value: String(format: "₹%.2f", viewModel.totalPnL),
-                            icon: "indianrupeesign.circle.fill",
-                            color: viewModel.totalPnL >= 0 ? .green : .red,
-                            trend: nil // Could calculate trend if data available
+                            icon: "indianrupeesign",
+                            color: viewModel.totalPnL >= 0 ? .green : .red
                         )
                         
                         MetricCard(
@@ -52,36 +53,79 @@ struct DashboardView: View {
                     .padding(.horizontal)
                     
                     // Categorized Trades
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 24) {
                         ForEach(TradeCategory.allCases) { category in
-                            if let trades = viewModel.tradesByCategory[category], !trades.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text(category.rawValue)
-                                            .font(.title3)
-                                            .fontWeight(.bold)
-                                            .fontDesign(.rounded)
+                            let trades = viewModel.tradesByCategory[category] ?? []
+                            
+                            VStack(alignment: .leading, spacing: 16) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(category.rawValue)
+                                                .font(.title2)
+                                                .fontWeight(.bold)
+                                                .fontDesign(.rounded)
+                                            
+                                            Text("\(trades.count)")
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.secondary)
+                                                .padding(6)
+                                                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                                .clipShape(Circle())
+                                        }
                                         
-                                        Spacer()
-                                        
-                                        Text("\(trades.count)")
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.secondary)
-                                            .padding(6)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(Circle())
+                                        // P&L and Charges Summary
+                                        HStack(spacing: 12) {
+                                            if let pnl = viewModel.categoryPnL[category] {
+                                                HStack(spacing: 4) {
+                                                    Text("P&L:")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    Text(String(format: "₹%.2f", pnl))
+                                                        .font(.caption)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(pnl >= 0 ? .green : .red)
+                                                }
+                                            }
+                                            
+                                            if let charges = viewModel.categoryCharges[category], charges > 0 {
+                                                HStack(spacing: 4) {
+                                                    Text("Charges:")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    Text(String(format: "₹%.2f", charges))
+                                                        .font(.caption)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.red)
+                                                }
+                                            }
+                                        }
                                     }
-                                    .padding(.horizontal)
                                     
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                
+                                if trades.isEmpty {
+                                    Text("No trades recorded")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal)
+                                        .padding(.bottom, 10)
+                                } else {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 16) {
                                             ForEach(trades) { trade in
-                                                TradeCardView(trade: trade)
+                                                NavigationLink(destination: TradeDetailView(trade: trade)) {
+                                                    TradeCardView(trade: trade)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
                                             }
                                         }
                                         .padding(.horizontal)
-                                        .padding(.bottom, 10) // Space for shadow
+                                        .padding(.bottom, 20) // Space for shadow
                                     }
                                 }
                             }
@@ -90,10 +134,10 @@ struct DashboardView: View {
                     
                     // Empty State
                     if viewModel.recentTrades.isEmpty {
-                        VStack(spacing: 15) {
-                            Image(systemName: "notebook.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.secondary.opacity(0.5))
+                        VStack(spacing: 16) {
+                            Image(systemName: "notebook")
+                                .font(.system(size: 60))
+                                .foregroundColor(.secondary.opacity(0.3))
                             Text("No trades recorded yet")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
@@ -103,13 +147,12 @@ struct DashboardView: View {
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 50)
+                        .padding(.vertical, 60)
                     }
                 }
-                .padding(.top)
                 .padding(.bottom, 40)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Dashboard") // Keep standard title for collapse behavior or hide if using custom header
             .toolbar(.hidden, for: .navigationBar) // Hide standard nav bar to use our custom large header if desired, or keep it.
             // Let's keep standard nav title but hide it in favor of our custom one or just remove our custom one.

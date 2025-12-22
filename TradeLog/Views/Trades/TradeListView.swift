@@ -4,12 +4,14 @@ struct TradeListView: View {
     @StateObject var viewModel = TradeListViewModel()
     @EnvironmentObject var dashboardViewModel: DashboardViewModel
     @State private var showAddTrade = false
+    
 
     @State private var showCategoryStatusFilter = false
     @State private var showDateFilter = false
+    @State private var navigationPath = NavigationPath()
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 20) {
                     // Custom Search & Filter Toggle Bar
@@ -204,10 +206,11 @@ struct TradeListView: View {
                         LazyVStack(spacing: 16) {
                             ForEach(viewModel.filteredTrades) { trade in
                                 SwipeToDeleteRow(content: {
-                                    NavigationLink(destination: TradeDetailView(trade: trade)) {
-                                        TradeListCard(trade: trade)
-                                    }
-                                    .buttonStyle(.plain) 
+                                    TradeListCard(trade: trade)
+                                        .contentShape(Rectangle()) // Ensure tap works on whole card
+                                        .onTapGesture {
+                                            navigationPath.append(trade)
+                                        }
                                 }, onDelete: {
                                     viewModel.deleteTrade(trade)
                                 })
@@ -227,7 +230,7 @@ struct TradeListView: View {
             .onChange(of: viewModel.selectedMonth) { _ in viewModel.filterTrades() }
             .onChange(of: viewModel.selectedYear) { _ in viewModel.filterTrades() }
             .toolbar {
-                 ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     HStack {
                         Menu {
                             Picker("Sort By", selection: $viewModel.sortOption) {
@@ -264,6 +267,9 @@ struct TradeListView: View {
             .refreshable {
                 await viewModel.fetchTrades()
                 await dashboardViewModel.fetchStats()
+            }
+            .navigationDestination(for: Trade.self) { trade in
+                TradeDetailView(trade: trade)
             }
         }
         .onAppear {

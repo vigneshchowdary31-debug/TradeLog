@@ -9,13 +9,19 @@ struct ContentView: View {
                 AnalyticsView()
                     .environmentObject(dashboardViewModel)
                     .tabItem {
-                        Label("Dashboard", systemImage: "house.fill")
+                        Label("Home", systemImage: "house.fill")
                     }
                 
                 TradeListView()
                     .environmentObject(dashboardViewModel)
                     .tabItem {
                         Label("Trades", systemImage: "list.bullet")
+                    }
+                
+                ReportsView()
+                    .environmentObject(dashboardViewModel)
+                    .tabItem {
+                        Label("Analytics", systemImage: "chart.bar.xaxis")
                     }
             }
         }

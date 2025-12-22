@@ -28,7 +28,7 @@ enum TradeStatus: String, CaseIterable, Codable, Identifiable {
     var id: String { self.rawValue }
 }
 
-struct Trade: Identifiable, Codable {
+struct Trade: Identifiable, Codable, Hashable {
     @DocumentID var id: String?
     var userId: String
     var symbol: String
@@ -41,6 +41,7 @@ struct Trade: Identifiable, Codable {
     var timeframe: String? // e.g., "5m", "1H", "Daily"
     var notes: String
     var tags: [String]
+    var imagePaths: [String]?
     var date: Date
     var exitPrice: Double?
     var status: TradeStatus
@@ -111,5 +112,13 @@ struct Trade: Identifiable, Codable {
         self.exitPrice = exitPrice
         self.charges = charges
         self.status = status
+    }
+    // Equatable & Hashable
+    static func == (lhs: Trade, rhs: Trade) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }

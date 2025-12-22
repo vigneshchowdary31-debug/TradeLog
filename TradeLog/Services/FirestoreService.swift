@@ -27,6 +27,28 @@ class FirestoreService {
         try db.collection("trades").document(id).setData(from: trade)
     }
     
+    func saveUser(_ user: User) throws {
+        try db.collection("users").document(user.id ?? UUID().uuidString).setData(from: user)
+    }
+    
+    var currentUserId: String { "demo_user" }
+    
+    // ... (existing methods using hardcoded "demo_user" can be updated later or now, but focus on the fix)
+    
+    func updateUserCapital(userId: String, capital: Double) async throws {
+        try await db.collection("users").document(userId).setData(["capital": capital], merge: true)
+    }
+    
+    func fetchUser(userId: String) async throws -> User? {
+        do {
+            let document = try await db.collection("users").document(userId).getDocument()
+            return try document.data(as: User.self)
+        } catch {
+            print("Error fetching user: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     func getTrade(id: String) async throws -> Trade? {
         do {
             let document = try await db.collection("trades").document(id).getDocument()
