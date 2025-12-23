@@ -9,6 +9,7 @@ class DashboardViewModel: ObservableObject {
     @Published var grossPnL: Double = 0
     @Published var netPnL: Double = 0
     @Published var totalCharges: Double = 0
+    @Published var totalInterest: Double = 0
     @Published var totalTrades: Int = 0
     @Published var openTradesCount: Int = 0
     @Published var tradesByCategory: [TradeCategory: [Trade]] = [:]
@@ -17,6 +18,7 @@ class DashboardViewModel: ObservableObject {
     @Published var fyGrossPnL: Double = 0
     @Published var fyNetPnL: Double = 0
     @Published var fyTotalCharges: Double = 0
+    @Published var fyTotalInterest: Double = 0
     @Published var fyCategoryPnL: [TradeCategory: Double] = [:]
     @Published var fyDailyPnL: [Date: Double] = [:]
     
@@ -131,7 +133,16 @@ class DashboardViewModel: ObservableObject {
         let realizedTrades = dashboardTrades.filter { $0.grossPnL != nil }
         self.grossPnL = realizedTrades.reduce(0) { $0 + ($1.grossPnL ?? 0) }
         self.totalCharges = realizedTrades.reduce(0) { $0 + ($1.charges ?? 0) }
-        self.netPnL = grossPnL - totalCharges
+        
+        // Calculate Total Interest for Dashboard period
+        // For accurate P&L, we should consider interest on realized trades mainly, 
+        // but user might want to see interest paid so far on open trades too?
+        // Let's stick to realized trades for consistency with Net P&L (which implies realized outcome)
+        // OR: P&L usually implies realized. Interest is a cost.
+        // If we strictly follow Net P&L = Gross - Charges - Interest, we should sum interest of realized trades.
+        self.totalInterest = realizedTrades.reduce(0) { $0 + $1.calculatedInterest }
+        
+        self.netPnL = grossPnL - totalCharges - totalInterest
         
         // Dashboard Advanced
         calculateAdvancedStats(trades: dashboardTrades)
@@ -146,7 +157,8 @@ class DashboardViewModel: ObservableObject {
         let realized = trades.filter { $0.grossPnL != nil }
         self.fyGrossPnL = realized.reduce(0) { $0 + ($1.grossPnL ?? 0) }
         self.fyTotalCharges = realized.reduce(0) { $0 + ($1.charges ?? 0) }
-        self.fyNetPnL = fyGrossPnL - fyTotalCharges
+        self.fyTotalInterest = realized.reduce(0) { $0 + $1.calculatedInterest }
+        self.fyNetPnL = fyGrossPnL - fyTotalCharges - fyTotalInterest
         
         // FY Category P&L & Daily P&L
         var catPnL: [TradeCategory: Double] = [:]
@@ -201,7 +213,7 @@ class DashboardViewModel: ObservableObject {
     }
     
     // Helper for Edge Section (Intraday vs F&O)
-    func getEdgeStats(for category: TradeCategory) -> (winRate: Double, totalTrades: Int, avgWin: Double, avgLoss: Double) {
+    func getEdgeStats(for category: TradeCategory) -> (winRate: Double, totalTrades: Int, avgWin: Double, avgLoss: Double, totalInterest: Double) {
         // Use filtered trades to respect date selection, but then filter by category
         // Note: tradesByCategory is already populated in calculateStats() with filtered trades
         let trades = tradesByCategory[category] ?? []
@@ -227,6 +239,11 @@ class DashboardViewModel: ObservableObject {
         let avgWin = wins.isEmpty ? 0 : wins.reduce(0, +) / Double(wins.count)
         let avgLoss = losses.isEmpty ? 0 : losses.reduce(0, +) / Double(losses.count)
         
-        return (winRate, trades.count, avgWin, avgLoss)
+        // Calculate Total Interest for MTF (using all relevant trades, not just closed top trades if we want current running interest too, but let's stick to closed/realized logic or just all trades in that category?)
+        // Let's use ALL trades in that category to show total cost incurred so far (even on open positions if dates are valid).
+        // Actually, calculatedInterest logic relies on daysHeld which defaults to current date if open. So simpler to sum all up.
+        let totalInterest = trades.reduce(0) { $0 + $1.calculatedInterest }
+        
+        return (winRate, trades.count, avgWin, avgLoss, totalInterest)
     }
 }

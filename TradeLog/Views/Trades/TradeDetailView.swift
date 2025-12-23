@@ -82,6 +82,12 @@ struct TradeDetailView: View {
                          if let charges = trade.charges {
                             DetailTile(title: "Charges", value: String(format: "₹%.2f", charges), color: .red, icon: "creditcard.fill")
                         }
+                        
+                        if let interest = trade.interestPerDay, trade.category == .mtf {
+                             DetailTile(title: "Interest/Day", value: String(format: "₹%.2f", interest), color: .orange, icon: "percent")
+                             DetailTile(title: "Days Held", value: "\(trade.daysHeld)", icon: "calendar")
+                             DetailTile(title: "Total Interest", value: String(format: "₹%.2f", trade.calculatedInterest), color: .red, icon: "arrow.up.right.circle")
+                        }
                     }
                     .padding(.horizontal)
                 }
@@ -96,10 +102,13 @@ struct TradeDetailView: View {
                         
                         VStack(spacing: 0) {
                             ExecutionRow(label: "Entry Price", value: trade.entryPrice)
-                            Divider().padding(.vertical, 12).opacity(0.5)
-                            ExecutionRow(label: "Target", value: trade.targetPrice, color: .green)
-                            Divider().padding(.vertical, 12).opacity(0.5)
-                            ExecutionRow(label: "Stop Loss", value: trade.stopLoss, color: .red)
+                            
+                            if trade.category != .mtf {
+                                Divider().padding(.vertical, 12).opacity(0.5)
+                                ExecutionRow(label: "Target", value: trade.targetPrice, color: .green)
+                                Divider().padding(.vertical, 12).opacity(0.5)
+                                ExecutionRow(label: "Stop Loss", value: trade.stopLoss, color: .red)
+                            }
                             
                             if let exit = trade.exitPrice {
                                 Divider().padding(.vertical, 12).opacity(0.5)

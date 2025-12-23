@@ -49,6 +49,15 @@ struct DashboardView: View {
                             icon: "number.circle.fill",
                             color: .purple
                         )
+                        
+                        if viewModel.totalInterest > 0 {
+                            MetricCard(
+                                title: "Total Interest",
+                                value: String(format: "₹%.2f", viewModel.totalInterest),
+                                icon: "percent",
+                                color: .orange
+                            )
+                        }
                     }
                     .padding(.horizontal)
                     

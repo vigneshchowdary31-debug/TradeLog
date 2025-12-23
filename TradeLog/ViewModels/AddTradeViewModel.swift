@@ -15,9 +15,11 @@ class AddTradeViewModel: ObservableObject {
     @Published var quantity = ""
     @Published var exitPrice = ""
     @Published var charges = ""
+    @Published var interestPerDay = ""
     @Published var notes = ""
     @Published var status: TradeStatus = .planned
     @Published var date: Date = Date()
+    @Published var exitDate: Date = Date()
 
     
     private var editingTrade: Trade?
@@ -43,7 +45,25 @@ class AddTradeViewModel: ObservableObject {
     
     var calculatedNetPnL: Double {
         let chargeVal = Double(charges) ?? 0
-        return calculatedGrossPnL - chargeVal
+        var net = calculatedGrossPnL - chargeVal
+        
+        if category == .mtf {
+             net -= projectedInterest
+        }
+        
+        return net
+    }
+    
+    var projectedDaysHeld: Int {
+        let end = (status == .closed || !exitPrice.isEmpty) ? exitDate : Date()
+        // If end date is before start date, default to 1
+        let components = Calendar.current.dateComponents([.day], from: date, to: end)
+        return max(1, components.day ?? 1)
+    }
+    
+    var projectedInterest: Double {
+        guard let interest = Double(interestPerDay), category == .mtf else { return 0 }
+        return interest * Double(projectedDaysHeld)
     }
     
     init(trade: Trade? = nil) {
@@ -58,9 +78,11 @@ class AddTradeViewModel: ObservableObject {
             self.quantity = trade.quantity.map { String($0) } ?? ""
             self.exitPrice = trade.exitPrice.map { String($0) } ?? ""
             self.charges = trade.charges.map { String($0) } ?? ""
+            self.interestPerDay = trade.interestPerDay.map { String($0) } ?? ""
             self.notes = trade.notes
             self.status = trade.status
             self.date = trade.date
+            self.exitDate = trade.exitDate ?? Date()
         }
         
         // Auto-set status for specific categories
@@ -82,18 +104,17 @@ class AddTradeViewModel: ObservableObject {
         let target = Double(targetPrice) ?? 0.0
         let stop = Double(stopLoss) ?? 0.0
         
-        if category != .dividend && category != .delivery && category != .ipo && category != .buyback {
-             // For normal trades, enforce target/stop if you strictly want them, 
-             // but user flow might rely on them being optional? 
-             // Previous code: guard let target = ..., let stop = ... else return false
-             // New flow: If fields are hidden, they might be empty strings.
-             // If they are mandatory for other types, check them:
+        if category != .dividend && category != .delivery && category != .ipo && category != .buyback && category != .mtf {
+             // For normal trades (Intraday, F&O), enforce target/stop if they should be mandatory
              if targetPrice.isEmpty || stopLoss.isEmpty {
                  guard let _ = Double(targetPrice), let _ = Double(stopLoss) else { return false }
              }
         } else {
-             // For Delivery/Dividend/IPO/Buyback, ensure Type is Buy if hidden
-             if category == .delivery || category == .ipo || category == .buyback || category == .dividend { type = .buy }
+             // For Delivery/Dividend/IPO/Buyback/MTF, ensure Type is Buy if hidden
+             // (MTF type picker is hidden, so force type to avoid issues)
+             if category == .delivery || category == .ipo || category == .buyback || category == .dividend || category == .mtf { 
+                 type = .buy 
+             }
         }
         
         let qty = Int(quantity)
@@ -101,6 +122,7 @@ class AddTradeViewModel: ObservableObject {
         // For dividend, exitPrice is not relevant, but let's just parse what we can
         let exit = Double(exitPrice)
         let chargeVal = Double(charges)
+        let interestVal = Double(interestPerDay)
         
         let trade = Trade(
             id: editingTrade?.id,
@@ -117,7 +139,9 @@ class AddTradeViewModel: ObservableObject {
             tags: [],
             date: date,
             exitPrice: exit,
+            exitDate: exitDate,
             charges: chargeVal,
+            interestPerDay: interestVal,
             status: status
         )
         

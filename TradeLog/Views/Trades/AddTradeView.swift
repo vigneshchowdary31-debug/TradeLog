@@ -24,7 +24,7 @@ struct AddTradeView: View {
                     
                     DatePicker("Date", selection: $viewModel.date, displayedComponents: [.date, .hourAndMinute])
                     
-                    if viewModel.category != .delivery && viewModel.category != .ipo && viewModel.category != .buyback && viewModel.category != .dividend {
+                    if viewModel.category != .delivery && viewModel.category != .ipo && viewModel.category != .buyback && viewModel.category != .dividend && viewModel.category != .mtf {
                         Picker("Type", selection: $viewModel.type) {
                             ForEach(TradeType.allCases) { type in
                                 Text(type.rawValue).tag(type)
@@ -60,7 +60,7 @@ struct AddTradeView: View {
                     }
                     
                     // Hide Target/SL for Dividend AND Delivery AND IPO AND Buyback
-                    if viewModel.category != .dividend && viewModel.category != .delivery && viewModel.category != .ipo && viewModel.category != .buyback {
+                    if viewModel.category != .dividend && viewModel.category != .delivery && viewModel.category != .ipo && viewModel.category != .buyback && viewModel.category != .mtf {
                         HStack {
                             Text("Target")
                             Spacer()
@@ -106,6 +106,20 @@ struct AddTradeView: View {
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                         }
+                        
+                        if viewModel.category == .mtf {
+                             HStack {
+                                Text("Interest Per Day")
+                                Spacer()
+                                TextField("Optional", text: $viewModel.interestPerDay)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
+                        
+                        if viewModel.status == .closed || !viewModel.exitPrice.isEmpty {
+                            DatePicker("Exit Date", selection: $viewModel.exitDate, displayedComponents: [.date, .hourAndMinute])
+                        }
                     } header: {
                         Text("Outcome")
                     }
@@ -130,6 +144,17 @@ struct AddTradeView: View {
                                 Text(String(format: "₹%.2f", viewModel.calculatedNetPnL))
                                     .fontWeight(.bold)
                                     .foregroundColor(viewModel.calculatedNetPnL >= 0 ? .green : .red)
+                            }
+                            
+                            if viewModel.category == .mtf {
+                                HStack {
+                                    Text("Total Interest")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(String(format: "₹%.2f", viewModel.projectedInterest))
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+                                }
                             }
                         } else {
                             HStack {

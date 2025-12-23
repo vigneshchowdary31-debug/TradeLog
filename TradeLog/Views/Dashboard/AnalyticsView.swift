@@ -98,9 +98,10 @@ struct AnalyticsView: View {
 
                     // 1. Core Performance Card (Net & Gross, No ROI/Capital)
                     PerformanceCard(
-                        charges: viewModel.totalCharges,
-                        net: viewModel.netPnL,
-                        gross: viewModel.grossPnL
+                        charges: viewModel.fyTotalCharges,
+                        net: viewModel.fyNetPnL,
+                        gross: viewModel.fyGrossPnL,
+                        interest: viewModel.fyTotalInterest
                     )
                     .padding(.horizontal)
                     
@@ -150,6 +151,15 @@ struct AnalyticsView: View {
                                 icon: "arrow.down.circle.fill",
                                 color: .red
                             )
+                            
+                            if selectedEdgeCategory == .mtf {
+                                MetricCard(
+                                    title: "Total Interest",
+                                    value: String(format: "₹%.0f", edgeStats.totalInterest),
+                                    icon: "percent",
+                                    color: .orange
+                                )
+                            }
                         }
                         .padding(.horizontal)
                     }
@@ -179,14 +189,16 @@ struct PerformanceCard: View {
     let gross: Double? // Optional Gross P&L
     let roi: Double?   // Optional ROI
     let capital: Double? // Optional Capital
+    let interest: Double? // Optional Interest
     var onTapCapital: (() -> Void)? = nil
     
-    init(charges: Double, net: Double, gross: Double? = nil, roi: Double? = nil, capital: Double? = nil, onTapCapital: (() -> Void)? = nil) {
+    init(charges: Double, net: Double, gross: Double? = nil, roi: Double? = nil, capital: Double? = nil, interest: Double? = nil, onTapCapital: (() -> Void)? = nil) {
         self.charges = charges
         self.net = net
         self.gross = gross
         self.roi = roi
         self.capital = capital
+        self.interest = interest
         self.onTapCapital = onTapCapital
     }
     
@@ -269,15 +281,34 @@ struct PerformanceCard: View {
                 
                 // Right Side: Charges (Always Shown)
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("CHARGES")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                    Text(String(format: "-₹%.2f", charges))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .fontDesign(.rounded)
-                        .foregroundColor(.red.opacity(0.8))
+                    // Charges
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text("CHARGES")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "-₹%.2f", charges))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .fontDesign(.rounded)
+                            .foregroundColor(.red.opacity(0.8))
+                    }
+                    
+                    if let interest = interest, interest > 0 {
+                         Spacer().frame(height: 8)
+                         
+                         VStack(alignment: .trailing, spacing: 0) {
+                            Text("INTEREST")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            Text(String(format: "-₹%.2f", interest))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .fontDesign(.rounded)
+                                .foregroundColor(.orange.opacity(0.8))
+                        }
+                    }
                 }
             }
             .padding(.top, 8)

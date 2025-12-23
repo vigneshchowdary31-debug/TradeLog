@@ -46,8 +46,20 @@ struct Trade: Identifiable, Codable, Hashable {
     var exitPrice: Double?
     var status: TradeStatus
     var charges: Double?
+    var interestPerDay: Double?
+    var exitDate: Date?
     
     // Computed Properties for Analytics
+    var daysHeld: Int {
+        let end = exitDate ?? Date()
+        let components = Calendar.current.dateComponents([.day], from: date, to: end)
+        return max(1, components.day ?? 1)
+    }
+    
+    var calculatedInterest: Double {
+        guard let interest = interestPerDay, category == .mtf else { return 0 }
+        return interest * Double(daysHeld)
+    }
     var riskRewardRatio: Double {
         let risk = abs(entryPrice - stopLoss)
         let reward = abs(targetPrice - entryPrice)
@@ -72,7 +84,13 @@ struct Trade: Identifiable, Codable, Hashable {
     
     var netPnL: Double? {
         guard let gross = grossPnL else { return nil }
-        return gross - (charges ?? 0)
+        
+        var totalCost = charges ?? 0
+        if category == .mtf {
+            totalCost += calculatedInterest
+        }
+        
+        return gross - totalCost
     }
     
     // Backward compatibility alias preference
@@ -93,7 +111,9 @@ struct Trade: Identifiable, Codable, Hashable {
          tags: [String] = [],
          date: Date = Date(),
          exitPrice: Double? = nil,
+         exitDate: Date? = nil,
          charges: Double? = nil,
+         interestPerDay: Double? = nil,
          status: TradeStatus = .planned) {
         
         self.id = id
@@ -110,7 +130,9 @@ struct Trade: Identifiable, Codable, Hashable {
         self.tags = tags
         self.date = date
         self.exitPrice = exitPrice
+        self.exitDate = exitDate
         self.charges = charges
+        self.interestPerDay = interestPerDay
         self.status = status
     }
     // Equatable & Hashable
